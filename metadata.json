@@ -1,0 +1,6 @@
+{
+  "name": "GymFlow",
+  "description": "Elite production-ready gym management and workout performance tracking applet.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
