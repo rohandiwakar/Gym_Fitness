@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DietPlan } from '../types';
 import { INITIAL_DIETS } from '../mockData';
 import { ArrowLeft, Plus, Trash2, CheckCircle, Apple } from 'lucide-react';
+import AIPromptButton from './AIPromptButton';
 
 interface DietCreatorProps {
   onSaveDiet: (diet: DietPlan) => void;
@@ -111,6 +112,14 @@ export default function DietCreator({ onSaveDiet, onClose }: DietCreatorProps) {
   const totalCarbs = meals.reduce((sum, item) => sum + item.carbs, 0);
   const totalFats = meals.reduce((sum, item) => sum + item.fats, 0);
 
+  const handleAIGeneratedDiet = (plan: any) => {
+    setDietName(plan.name || 'AI Diet Matrix');
+    setGoal(plan.goal || 'Muscle Gain');
+    if (plan.meals && plan.meals.length > 0) {
+      setMeals(plan.meals);
+    }
+  };
+
   return (
     <div className="absolute inset-0 bg-[#111508] text-[#e2e4cf] z-40 flex flex-col overflow-hidden font-sans select-none">
       {/* Top Header */}
@@ -127,6 +136,15 @@ export default function DietCreator({ onSaveDiet, onClose }: DietCreatorProps) {
 
       {/* Main Content scroll window */}
       <main className="flex-grow overflow-y-auto px-5 py-6 space-y-6">
+        
+        {/* Gemini AI Assistant Block */}
+        <section className="bg-[#1e2113]/55 border border-[#cbd63c]/15 p-4 rounded-xl">
+          <p className="text-[10px] uppercase font-mono font-bold text-[#abd600] tracking-widest mb-1.5 text-left">Gemini AI Assistant</p>
+          <AIPromptButton 
+            type="diet" 
+            onSuccess={handleAIGeneratedDiet} 
+          />
+        </section>
         
         {/* Detail setting boards */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,24 +1,91 @@
 import React, { useState } from 'react';
 import { Mail, Phone, Lock, Eye, EyeOff, Sparkles, UserCheck } from 'lucide-react';
-import { Role } from '../types';
+import { Role, Member, Trainer } from '../types';
 
 interface AuthScreenProps {
-  onLoginSuccess: (role: Role, name: string) => void;
+  members: Member[];
+  trainers: Trainer[];
+  onLoginSuccess: (role: Role, name: string, userId: string) => void;
 }
 
-export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
+export default function AuthScreen({ members, trainers, onLoginSuccess }: AuthScreenProps) {
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
-  const [emailInput, setEmailInput] = useState('name@gymflow.com');
+  const [emailInput, setEmailInput] = useState('admin@gymflow.com');
   const [phoneInput, setPhoneInput] = useState('+1 (555) 000-0012');
   const [passwordInput, setPasswordInput] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role>('Member'); // Quick role helper
+  const [selectedRole, setSelectedRole] = useState<Role>('Admin'); // Default admin
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleQuickRoleSelect = (r: Role) => {
+    setSelectedRole(r);
+    setErrorMessage('');
+    if (r === 'Admin') {
+      setEmailInput('admin@gymflow.com');
+      setPasswordInput('password123');
+      setAuthMethod('email');
+    } else if (r === 'Trainer') {
+      setEmailInput('marcus@gymflow.com'); // t1 is Coach Marcus (marcus@gymflow.com)
+      setPasswordInput('password123');
+      setAuthMethod('email');
+    } else {
+      setEmailInput('alex.morgan@gymflow.com'); // m1 is Alex Morgan
+      setPasswordInput('password123');
+      setAuthMethod('email');
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In our ISOT app simulator, we customize greetings based on roles
-    const name = selectedRole === 'Admin' ? 'GymFlow Admin' : selectedRole === 'Trainer' ? 'Coach Marcus' : 'Alex Morgan';
-    onLoginSuccess(selectedRole, name);
+    setErrorMessage('');
+
+    const targetLogin = authMethod === 'email' ? emailInput.trim().toLowerCase() : phoneInput.trim();
+    
+    // 1. Check Admin credentials
+    if (targetLogin === 'admin@gymflow.com' || targetLogin === 'admin') {
+      if (passwordInput === 'password123') {
+        onLoginSuccess('Admin', 'GymFlow Admin', 'admin_id');
+        return;
+      } else {
+        setErrorMessage('Invalid administrator password.');
+        return;
+      }
+    }
+
+    // 2. Check Trainer credentials
+    // Search the trainers list. Default trainers can be logged in via their names/emails.
+    const foundTrainer = trainers.find(t => {
+      const specEmail = t.name.toLowerCase().split(' ')[1] + '@gymflow.com'; // Marcus -> marcus@gymflow.com
+      const genEmail = t.name.toLowerCase().replace(/\s+/g, '') + '@gymflow.com';
+      return t.contactDetails.includes(targetLogin) || specEmail === targetLogin || genEmail === targetLogin || t.name.toLowerCase() === targetLogin;
+    });
+
+    if (foundTrainer) {
+      if (passwordInput === 'password123') {
+        onLoginSuccess('Trainer', foundTrainer.name, foundTrainer.id);
+        return;
+      } else {
+        setErrorMessage('Invalid trainer password.');
+        return;
+      }
+    }
+
+    // 3. Check Member credentials
+    const foundMember = members.find(m => {
+      return m.email.toLowerCase() === targetLogin || m.phone.includes(targetLogin) || m.fullName.toLowerCase() === targetLogin;
+    });
+
+    if (foundMember) {
+      if (passwordInput === 'password123') {
+        onLoginSuccess('Member', foundMember.fullName, foundMember.id);
+        return;
+      } else {
+        setErrorMessage('Invalid member password.');
+        return;
+      }
+    }
+
+    setErrorMessage('No account associated with these credentials.');
   };
 
   return (
@@ -54,13 +121,13 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
 
         {/* Guest selector for quick visual test maps! */}
         <div className="p-2 mb-4 bg-[#1a1d10] border border-[#cbd63c]/10 rounded-xl">
-          <label className="text-[9px] uppercase font-extrabold text-[#abd600] tracking-wider block mb-1 text-center">Quick Role Switcher</label>
+          <label className="text-[9px] uppercase font-extrabold text-[#abd600] tracking-wider block mb-1 text-center">Quick Demo Switcher</label>
           <div className="grid grid-cols-3 gap-1">
             {['Admin', 'Trainer', 'Member'].map((r) => (
               <button
                 key={r}
                 type="button"
-                onClick={() => setSelectedRole(r as Role)}
+                onClick={() => handleQuickRoleSelect(r as Role)}
                 className={`py-1 text-[10px] uppercase font-bold rounded-lg transition-all ${selectedRole === r ? 'bg-[#cbd63c]/20 text-[#abd600] border border-[#abd600]/30' : 'text-[#c4c9ac]/60 hover:text-white'}`}
               >
                 {r}
@@ -68,6 +135,13 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
             ))}
           </div>
         </div>
+
+        {/* Display Error Message if any */}
+        {errorMessage && (
+          <div className="mb-4 p-2.5 bg-red-950/60 border border-red-500/30 text-red-400 text-xs rounded-xl font-mono text-center animate-pulse">
+            ⚠️ {errorMessage}
+          </div>
+        )}
 
         {/* Toggle selectors */}
         <div className="flex bg-[#1a1d10]/90 rounded-lg p-1 mb-5">

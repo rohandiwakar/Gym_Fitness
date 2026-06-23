@@ -5,11 +5,12 @@ import { Calendar, ChevronRight, MessageSquare, Plus, Award, CheckCircle, BarCha
 interface TrainerPanelProps {
   members: Member[];
   trainers: Trainer[];
+  trainerId?: string;
   onCreateWorkout: () => void;
   onCreateDiet: () => void;
 }
 
-export default function TrainerPanel({ members, trainers, onCreateWorkout, onCreateDiet }: TrainerPanelProps) {
+export default function TrainerPanel({ members, trainers, trainerId = 't1', onCreateWorkout, onCreateDiet }: TrainerPanelProps) {
   const [activeSession, setActiveSession] = useState<string | null>(null);
   
   // Custom Chat Simulator
@@ -38,7 +39,8 @@ export default function TrainerPanel({ members, trainers, onCreateWorkout, onCre
     }, 1500);
   };
 
-  const trainerMembers = members.filter(m => m.assignedTrainerId === 't1');
+  const currentTrainer = trainers.find(t => t.id === trainerId) || trainers[0];
+  const trainerMembers = members.filter(m => m.assignedTrainerId === trainerId);
 
   return (
     <div className="flex flex-col h-full bg-[#111508]/85 text-[#e2e4cf] overflow-y-auto px-5 pt-4 pb-24 font-sans select-none relative z-10">
@@ -46,7 +48,7 @@ export default function TrainerPanel({ members, trainers, onCreateWorkout, onCre
       {/* Header section */}
       <div className="space-y-1">
         <p className="text-[10px] font-bold text-[#abd600] uppercase tracking-widest font-mono">DASHBOARD OVERVIEW</p>
-        <h2 className="text-2xl font-bold font-mono text-white tracking-tight">Welcome Coach</h2>
+        <h2 className="text-2xl font-bold font-mono text-white tracking-tight">Welcome {currentTrainer?.name || 'Coach'}</h2>
       </div>
 
       {/* Stats Bento Grid */}

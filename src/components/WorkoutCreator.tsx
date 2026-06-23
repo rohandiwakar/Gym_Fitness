@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Exercise, WorkoutPlan } from '../types';
 import { INITIAL_EXERCISES } from '../mockData';
 import { ArrowLeft, Save, Plus, Trash2, GripVertical, CheckCircle } from 'lucide-react';
+import AIPromptButton from './AIPromptButton';
 
 interface WorkoutCreatorProps {
   onSavePlan: (plan: WorkoutPlan) => void;
@@ -107,6 +108,15 @@ export default function WorkoutCreator({ onSavePlan, onClose }: WorkoutCreatorPr
     }, 1500);
   };
 
+  const handleAIGeneratedWorkout = (plan: any) => {
+    setPlanName(plan.name || 'AI Strength Blueprint');
+    setGoal(plan.goal || 'Muscle Gain');
+    setDurationWeeks(plan.durationWeeks || 8);
+    if (plan.exercises && plan.exercises.length > 0) {
+      setSelectedExercises(plan.exercises);
+    }
+  };
+
   return (
     <div className="absolute inset-0 bg-[#111508] text-[#e2e4cf] z-40 flex flex-col overflow-hidden font-sans select-none">
       {/* Top Navigation */}
@@ -129,6 +139,15 @@ export default function WorkoutCreator({ onSavePlan, onClose }: WorkoutCreatorPr
 
       {/* Primary Scroll Content */}
       <main className="flex-1 mt-16 overflow-y-auto px-5 py-6 space-y-6">
+        {/* Gemini AI Assistant Block */}
+        <section className="bg-[#1e2113]/55 border border-[#cbd63c]/15 p-4 rounded-xl">
+          <p className="text-[10px] uppercase font-mono font-bold text-[#abd600] tracking-widest mb-1.5 text-left">Gemini AI Assistant</p>
+          <AIPromptButton 
+            type="workout" 
+            onSuccess={handleAIGeneratedWorkout} 
+          />
+        </section>
+
         {/* Metadata section (Bento Style) */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 bg-[#1e2113]/40 border border-white/5 p-6 rounded-xl flex flex-col justify-end min-h-[140px] relative overflow-hidden group">

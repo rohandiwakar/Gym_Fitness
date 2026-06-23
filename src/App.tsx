@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Role, Member, Trainer, Exercise, WorkoutPlan, DietPlan, AttendanceRecord, PaymentRecord, GymNotification } from './types';
 import { 
   INITIAL_MEMBERS, 
@@ -40,18 +40,111 @@ import {
 
 export default function App() {
   // System State Management
-  const [userRole, setUserRole] = useState<Role | null>(null);
-  const [userName, setUserName] = useState('');
+  const [layoutMode, setLayoutMode] = useState<'desktop' | 'mobile'>(() => {
+    return (localStorage.getItem('gymflow_layout_mode') as 'desktop' | 'mobile') || 'desktop';
+  });
+
+  const [userRole, setUserRole] = useState<Role | null>(() => {
+    return (localStorage.getItem('gymflow_user_role') as Role | null) || null;
+  });
+
+  const [userName, setUserName] = useState(() => {
+    return localStorage.getItem('gymflow_user_name') || '';
+  });
+
+  const [currentUserId, setCurrentUserId] = useState<string>(() => {
+    return localStorage.getItem('gymflow_current_user_id') || '';
+  });
   
   // Data State Management (Propagates downstream)
-  const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
-  const [trainers] = useState<Trainer[]>(INITIAL_TRAINERS);
-  const [exercises, setExercises] = useState<Exercise[]>(INITIAL_EXERCISES);
-  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>(INITIAL_WORKOUTS);
-  const [dietPlans, setDietPlans] = useState<DietPlan[]>(INITIAL_DIETS);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE);
-  const [payments, setPayments] = useState<PaymentRecord[]>(INITIAL_PAYMENTS);
-  const [notifications, setNotifications] = useState<GymNotification[]>(INITIAL_NOTIFICATIONS);
+  const [members, setMembers] = useState<Member[]>(() => {
+    const saved = localStorage.getItem('gymflow_members');
+    return saved ? JSON.parse(saved) : INITIAL_MEMBERS;
+  });
+
+  const [trainers, setTrainers] = useState<Trainer[]>(() => {
+    const saved = localStorage.getItem('gymflow_trainers');
+    return saved ? JSON.parse(saved) : INITIAL_TRAINERS;
+  });
+
+  const [exercises, setExercises] = useState<Exercise[]>(() => {
+    const saved = localStorage.getItem('gymflow_exercises');
+    return saved ? JSON.parse(saved) : INITIAL_EXERCISES;
+  });
+
+  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>(() => {
+    const saved = localStorage.getItem('gymflow_workout_plans');
+    return saved ? JSON.parse(saved) : INITIAL_WORKOUTS;
+  });
+
+  const [dietPlans, setDietPlans] = useState<DietPlan[]>(() => {
+    const saved = localStorage.getItem('gymflow_diet_plans');
+    return saved ? JSON.parse(saved) : INITIAL_DIETS;
+  });
+
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => {
+    const saved = localStorage.getItem('gymflow_attendance');
+    return saved ? JSON.parse(saved) : INITIAL_ATTENDANCE;
+  });
+
+  const [payments, setPayments] = useState<PaymentRecord[]>(() => {
+    const saved = localStorage.getItem('gymflow_payments');
+    return saved ? JSON.parse(saved) : INITIAL_PAYMENTS;
+  });
+
+  const [notifications, setNotifications] = useState<GymNotification[]>(() => {
+    const saved = localStorage.getItem('gymflow_notifications');
+    return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
+  });
+
+  // LocalStorage sync effects
+  useEffect(() => {
+    localStorage.setItem('gymflow_layout_mode', layoutMode);
+  }, [layoutMode]);
+
+  useEffect(() => {
+    if (userRole) {
+      localStorage.setItem('gymflow_user_role', userRole);
+      localStorage.setItem('gymflow_user_name', userName);
+      localStorage.setItem('gymflow_current_user_id', currentUserId);
+    } else {
+      localStorage.removeItem('gymflow_user_role');
+      localStorage.removeItem('gymflow_user_name');
+      localStorage.removeItem('gymflow_current_user_id');
+    }
+  }, [userRole, userName, currentUserId]);
+
+  useEffect(() => {
+    localStorage.setItem('gymflow_members', JSON.stringify(members));
+  }, [members]);
+
+  useEffect(() => {
+    localStorage.setItem('gymflow_trainers', JSON.stringify(trainers));
+  }, [trainers]);
+
+  useEffect(() => {
+    localStorage.setItem('gymflow_exercises', JSON.stringify(exercises));
+  }, [exercises]);
+
+  useEffect(() => {
+    localStorage.setItem('gymflow_workout_plans', JSON.stringify(workoutPlans));
+  }, [workoutPlans]);
+
+  useEffect(() => {
+    localStorage.setItem('gymflow_diet_plans', JSON.stringify(dietPlans));
+  }, [dietPlans]);
+
+  useEffect(() => {
+    localStorage.setItem('gymflow_attendance', JSON.stringify(attendance));
+  }, [attendance]);
+
+  useEffect(() => {
+    localStorage.setItem('gymflow_payments', JSON.stringify(payments));
+  }, [payments]);
+
+  useEffect(() => {
+    localStorage.setItem('gymflow_notifications', JSON.stringify(notifications));
+  }, [notifications]);
 
   // Layout navigation states
   const [adminTab, setAdminTab] = useState<'Dashboard' | 'Members'>('Dashboard');
@@ -116,9 +209,8 @@ export default function App() {
   };
 
   const handleUpdateWeight = (new_w: number) => {
-    // Log Weight progress under Alex Rivera (id m1)
     const updated = members.map(m => {
-      if (m.id === 'm1') {
+      if (m.id === currentUserId) {
         const historyCopy = [...m.weightHistory, { date: 'Today', weight: new_w }];
         return { ...m, weight: new_w, weightHistory: historyCopy };
       }
@@ -132,31 +224,56 @@ export default function App() {
     setNotifications(cleared);
   };
 
-  const currentMemberObj = members.find(m => m.id === 'm1') || members[0];
+  const currentMemberObj = members.find(m => m.id === currentUserId) || members.find(m => m.id === 'm1') || members[0];
 
   return (
     <div className="relative min-h-screen bg-[#070903] text-[#e2e4cf] overflow-hidden flex flex-col items-center justify-center py-4 px-2 sm:py-8">
       {/* Dynamic kinetic aesthetic background pattern in workspace */}
       <KineticShader opacity={userRole === null ? 0.8 : 0.45} />
 
-      {/* Primary Mobile App Mockup Shell framing */}
+      {/* Layout mode switcher control header */}
+      <div className="mb-4 z-50 bg-[#1a1d10]/95 border border-[#444933]/50 px-4 py-1.5 rounded-full flex items-center gap-4 text-xs backdrop-blur-md shadow-2xl">
+        <span className="text-[10px] uppercase font-mono tracking-widest font-extrabold text-[#abd600]">Layout Preview:</span>
+        <div className="flex bg-[#111508] rounded-lg p-0.5 border border-[#444933]/25">
+          <button
+            onClick={() => setLayoutMode('desktop')}
+            className={`px-3 py-1 text-[10px] uppercase font-bold font-mono tracking-wider rounded-md transition-all ${layoutMode === 'desktop' ? 'bg-[#cbd63c] text-[#111508]' : 'text-[#c4c9ac]/60 hover:text-white'}`}
+          >
+            💻 Widescreen Dashboard
+          </button>
+          <button
+            onClick={() => setLayoutMode('mobile')}
+            className={`px-3 py-1 text-[10px] uppercase font-bold font-mono tracking-wider rounded-md transition-all ${layoutMode === 'mobile' ? 'bg-[#cbd63c] text-[#111508]' : 'text-[#c4c9ac]/60 hover:text-white'}`}
+          >
+            📱 Mobile Frame
+          </button>
+        </div>
+      </div>
+
+      {/* Primary Mockup Shell framing */}
       <div 
         id="gymflow-frame-wrapper"
-        className="w-full max-w-[420px] h-[840px] bg-[#111508]/95 border border-[#444933]/40 rounded-[44px] flex flex-col overflow-hidden shadow-[0_24px_56px_rgba(0,0,0,0.85)] relative"
+        className={`w-full bg-[#111508]/95 border border-[#444933]/40 flex flex-col overflow-hidden shadow-[0_24px_56px_rgba(0,0,0,0.85)] relative transition-all duration-300 ${
+          layoutMode === 'mobile' 
+            ? 'max-w-[420px] h-[840px] rounded-[44px]' 
+            : 'max-w-[1240px] w-[95%] h-[90vh] rounded-3xl'
+        }`}
       >
         
         {/* Device screen notch simulator bar */}
-        <header className="h-10 bg-[#111508] shrink-0 flex justify-between items-center px-6 text-[11px] font-bold font-mono tracking-wide border-b border-white/5 z-50 select-none">
-          <time className="text-white">09:41</time>
-          <div className="w-24 h-4.5 bg-[#000000] rounded-full absolute left-1/2 -translate-x-1/2 border border-white/5 flex items-center justify-center">
-            <span className="w-2 h-2 rounded-full bg-[#cbd63c]/30 animate-pulse"></span>
-          </div>
-          <div className="flex items-center gap-1.5 text-white/80">
-            <Signal className="w-3.5 h-3.5 shrink-0" />
-            <Wifi className="w-3.5 h-3.5 shrink-0" />
-            <Battery className="w-4.5 h-4.5 shrink-0 text-[#abd600]" />
-          </div>
-        </header>
+        {layoutMode === 'mobile' && (
+          <header className="h-10 bg-[#111508] shrink-0 flex justify-between items-center px-6 text-[11px] font-bold font-mono tracking-wide border-b border-white/5 z-50 select-none">
+            <time className="text-white">09:41</time>
+            <div className="w-24 h-4.5 bg-[#000000] rounded-full absolute left-1/2 -translate-x-1/2 border border-white/5 flex items-center justify-center">
+              <span className="w-2 h-2 rounded-full bg-[#cbd63c]/30 animate-pulse"></span>
+            </div>
+            <div className="flex items-center gap-1.5 text-white/80">
+              <Signal className="w-3.5 h-3.5 shrink-0" />
+              <Wifi className="w-3.5 h-3.5 shrink-0" />
+              <Battery className="w-4.5 h-4.5 shrink-0 text-[#abd600]" />
+            </div>
+          </header>
+        )}
 
         {/* Dynamic App Brand Header bar (Only visible when user has authenticated) */}
         {userRole && (
@@ -204,12 +321,15 @@ export default function App() {
         <div className="flex-1 overflow-hidden relative flex flex-col bg-[#111508]/30">
           
           {userRole === null ? (
-            /* Credentials login prompt */
-            <AuthScreen onLoginSuccess={(role, name) => {
-              setUserRole(role);
-              setUserName(name);
-              
-              // Welcome notification Dispatcher
+            <AuthScreen 
+              members={members}
+              trainers={trainers}
+              onLoginSuccess={(role, name, userId) => {
+                setUserRole(role);
+                setUserName(name);
+                setCurrentUserId(userId);
+                
+                // Welcome notification Dispatcher
               const welcomeNotice: GymNotification = {
                 id: `notice_${Date.now()}`,
                 title: 'Session Started',
@@ -274,6 +394,7 @@ export default function App() {
                 <TrainerPanel 
                   members={members}
                   trainers={trainers}
+                  trainerId={currentUserId}
                   onCreateWorkout={() => setActiveCreator('workout')}
                   onCreateDiet={() => setActiveCreator('diet')}
                 />
@@ -396,9 +517,11 @@ export default function App() {
         )}
 
         {/* Interactive mock navigation info footer panel block */}
-        <footer className="h-4 bg-[#111508] shrink-0 border-t border-white/5 flex items-center justify-center pb-2 select-none z-30">
-          <div className="w-28 h-1 bg-[#444933]/40 rounded-full"></div>
-        </footer>
+        {layoutMode === 'mobile' && (
+          <footer className="h-4 bg-[#111508] shrink-0 border-t border-white/5 flex items-center justify-center pb-2 select-none z-30">
+            <div className="w-28 h-1 bg-[#444933]/40 rounded-full"></div>
+          </footer>
+        )}
 
       </div>
 
