@@ -330,16 +330,41 @@ export default function App() {
                 setCurrentUserId(userId);
                 
                 // Welcome notification Dispatcher
-              const welcomeNotice: GymNotification = {
-                id: `notice_${Date.now()}`,
-                title: 'Session Started',
-                message: `Authenticated successfully as ${name}. Welcome back.`,
-                timestamp: 'Just now',
-                unread: true,
-                category: 'SYSTEM'
-              };
-              setNotifications([welcomeNotice, ...notifications]);
-            }} />
+                const welcomeNotice: GymNotification = {
+                  id: `notice_${Date.now()}`,
+                  title: 'Session Started',
+                  message: `Authenticated successfully as ${name}. Welcome back.`,
+                  timestamp: 'Just now',
+                  unread: true,
+                  category: 'SYSTEM'
+                };
+                setNotifications([welcomeNotice, ...notifications]);
+              }}
+              onRegisterMember={(newMember) => {
+                setMembers([newMember, ...members]);
+                // Add a payment transaction record for the registration
+                const planName = newMember.planId === 'p1' ? 'Pro Performance Annual' : newMember.planId === 'p2' ? 'Elite Plan' : 'Basic Monthly';
+                const planAmount = newMember.planId === 'p1' ? 1200 : newMember.planId === 'p2' ? 650 : 150;
+                setPayments([{
+                  id: `pay_${Date.now()}`,
+                  memberName: newMember.fullName,
+                  planName,
+                  amount: planAmount,
+                  date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+                  status: 'Paid',
+                }, ...payments]);
+                // Add a notice about the registration event
+                const regNotice: GymNotification = {
+                  id: `notice_${Date.now()}`,
+                  title: 'New Member Registered',
+                  message: `${newMember.fullName} self-registered under plan: ${planName}.`,
+                  timestamp: 'Just now',
+                  unread: true,
+                  category: 'SYSTEM'
+                };
+                setNotifications([regNotice, ...notifications]);
+              }}
+            />
           ) : (
             /* Authenticated layouts */
             <>
